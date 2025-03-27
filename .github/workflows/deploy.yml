@@ -15,21 +15,26 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      - name: Define Variables
+        run: |
+          echo "DOCKER_IMAGE=${{ secrets.DOCKER_USERNAME }}/node-ci-cd" >> $GITHUB_ENV
+          echo "CONTAINER_NAME=node-app" >> $GITHUB_ENV
+
       - name: Build and Push Docker Image
         run: |
-          docker build -t your-dockerhub-username/node-ci-cd .
-          docker tag your-dockerhub-username/node-ci-cd:latest your-dockerhub-username/node-ci-cd:latest
+          docker build -t $DOCKER_IMAGE .
+          docker tag $DOCKER_IMAGE:latest $DOCKER_IMAGE:latest
           echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-          docker push your-dockerhub-username/node-ci-cd:latest
+          docker push $DOCKER_IMAGE:latest
 
       - name: SSH into EC2 and Deploy
         uses: appleboy/ssh-action@v0.1.4
         with:
           host: ${{ secrets.EC2_HOST }}
-          username: ec2-user
+          username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            docker pull your-dockerhub-username/node-ci-cd:latest
-            docker stop node-app || true
-            docker rm node-app || true
-            docker run -d -p 3000:3000 --name node-app your-dockerhub-username/node-ci-cd:latest
+            docker pull $DOCKER_IMAGE:latest
+            docker stop $CONTAINER_NAME || true
+            docker rm $CONTAINER_NAME || true
+            docker run -d -p 3000:3000 --name $CONTAINER_NAME $DOCKER_IMAGE:latest
