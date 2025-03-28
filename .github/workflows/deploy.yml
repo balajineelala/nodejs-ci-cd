@@ -7,7 +7,7 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     environment: secrets  # 👈 Add the environment name here
     steps:
       - name: Checkout Code
@@ -52,9 +52,9 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
           script: |
-            cd /home/ec2-user/your-repo
-            git pull origin main
-            npm install
-            npm run build  # If needed
-            pm2 restart server.js
+            docker pull $DOCKER_IMAGE:latest
+            docker stop node-app || true
+            docker rm node-app || true
+            docker run -d -p 3000:3000 --name node-app $DOCKER_IMAGE:latest
